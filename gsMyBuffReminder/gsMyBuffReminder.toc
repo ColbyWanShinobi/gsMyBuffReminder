@@ -1,0 +1,11 @@
+## Interface: 120000
+## Title: gsMyBuffReminder
+## Notes: Reminds you about missing self buffs, weapon imbues, and configured toy buffs.
+## Author: Colby
+## Version: 0.1.0
+## SavedVariables: gsMyBuffReminderDB
+## OptionalDeps: LibEditMode
+
+Rules.lua
+Core.lua
+Options.lua
