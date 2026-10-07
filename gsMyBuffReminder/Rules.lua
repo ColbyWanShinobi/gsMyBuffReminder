@@ -52,30 +52,32 @@ and `races` are optional sets. Example:
 local ADDON_NAME, ns = ...
 
 -- Add defaults here. All spell/aura matching is by numeric SpellID, never by
--- localized spell name. A rule may use spellID (normal aura), auraSpellIDs
--- (alternate displayed-aura IDs), weaponEnchant (main, off, or either), or
--- anySpellIDs (at least one active aura is required).
+-- localized spell name. castSpellID or castSpellIDs controls whether a rule is
+-- available; auraSpellIDs checks the active player aura; weaponEnchant checks
+-- a main, off, or either-hand temporary enchant. Custom rules continue to use
+-- spellID as both their cast and aura ID.
 -- classes/specs/races are optional sets; omitting one applies to all of them.
 ns.DefaultRules = {
 
 	{
 		key = "druid_mark_of_the_wild",
 		name = "Mark of the Wild",
-		spellID = 1126,
+		castSpellID = 1126,
+		auraSpellIDs = { 1126 },
 		classes = { DRUID = true },
 	},
 	{
 		key = "shaman_lightning_shield",
 		name = "Lightning Shield",
-		spellID = 192106,
-		auraSpellIDs = { 192106, 324 }, -- Retail and legacy displayed-aura IDs
+		castSpellID = 192106,
+		auraSpellIDs = { 192106 },
 		classes = { SHAMAN = true },
 		specs = { [263] = true }, -- Enhancement
 	},
 	{
 		key = "shaman_windfury_weapon",
 		name = "Windfury Weapon",
-		spellID = 33757,
+		castSpellID = 33757,
 		classes = { SHAMAN = true },
 		specs = { [263] = true },
 		weaponEnchant = { slot = "main", enchantID = 5401 },
@@ -83,7 +85,7 @@ ns.DefaultRules = {
 	{
 		key = "shaman_flametongue_weapon",
 		name = "Flametongue Weapon",
-		spellID = 318038,
+		castSpellID = 318038,
 		classes = { SHAMAN = true },
 		specs = { [263] = true },
 		weaponEnchant = { slot = "off", enchantID = 5400 },
@@ -91,24 +93,25 @@ ns.DefaultRules = {
 	{
 		key = "shaman_earth_shield",
 		name = "Earth Shield",
-		spellID = 974,
+		castSpellID = 974,
 		-- Elemental Orbit has used a distinct self-aura ID on some client builds.
 		auraSpellIDs = { 974, 383648 },
 		classes = { SHAMAN = true },
 		specs = { [263] = true },
-		requiresKnownSpell = true,
 	},
 	{
 		key = "paladin_aura",
 		name = "Paladin Aura",
-		anySpellIDs = { 465, 32223, 183435, 317920 }, -- Devotion, Crusader, Retribution, Concentration
+		castSpellIDs = { 465, 32223, 183435, 317920 }, -- Devotion, Crusader, Retribution, Concentration
+		auraSpellIDs = { 465, 32223, 183435, 317920 },
 		classes = { PALADIN = true },
 		specs = { [65] = true, [66] = true }, -- Holy, Protection
 	},
 	{
 		key = "retribution_devotion_aura",
 		name = "Devotion Aura",
-		spellID = 465,
+		castSpellID = 465,
+		auraSpellIDs = { 465 },
 		classes = { PALADIN = true },
 		specs = { [70] = true }, -- Retribution
 	},

@@ -1,6 +1,9 @@
 local ADDON_NAME, ns = ...
 local frame = CreateFrame("Frame")
 ns.frame = frame
+ns.knownSpells = {}
+
+local SpellIsKnown = C_SpellBook and C_SpellBook.IsSpellKnown or IsPlayerSpell
 
 local defaults = {
 	enabled = true,
@@ -43,12 +46,13 @@ end
 
 local function RuleLabel(rule)
 	if rule.name and rule.name ~= "" then return rule.name end
-	if rule.spellID then return C_Spell.GetSpellName(rule.spellID) or ("Spell " .. rule.spellID) end
+	local spellID = rule.castSpellID or rule.spellID
+	if spellID then return C_Spell.GetSpellName(spellID) or ("Spell " .. spellID) end
 	return "Unnamed reminder"
 end
 
 local function RuleIcon(rule)
-	local id = rule.spellID or (rule.anySpellIDs and rule.anySpellIDs[1])
+	local id = rule.castSpellID or rule.spellID or (rule.castSpellIDs and rule.castSpellIDs[1]) or (rule.anySpellIDs and rule.anySpellIDs[1])
 	return id and C_Spell.GetSpellTexture(id) or "Interface\\Icons\\INV_Misc_QuestionMark"
 end
 
@@ -75,10 +79,29 @@ local function HasWeaponEnchant(requirement)
 end
 
 function ns:IsRuleAvailable(rule)
-	local isKnown = C_SpellBook and C_SpellBook.IsSpellKnown or IsPlayerSpell
-	if rule.requiresKnownSpell and not isKnown(rule.spellID) then return false end
 	if rule.toyID and (not self.db.includeToyBuffs or not PlayerHasToy(rule.toyID)) then return false end
+	if rule.castSpellID then return self:IsSpellKnown(rule.castSpellID) end
+	if rule.spellID then return self:IsSpellKnown(rule.spellID) end
+	if rule.castSpellIDs then
+		for _, spellID in ipairs(rule.castSpellIDs) do
+			if self:IsSpellKnown(spellID) then return true end
+		end
+		return false
+	end
 	return true
+end
+
+function ns:IsSpellKnown(spellID)
+	local known = self.knownSpells[spellID]
+	if known ~= nil then return known end
+
+	known = SpellIsKnown(spellID) and true or false
+	self.knownSpells[spellID] = known
+	return known
+end
+
+function ns:InvalidateKnownSpells()
+	wipe(self.knownSpells)
 end
 
 function ns:GetCurrentSpecID()
@@ -195,7 +218,7 @@ function ns:Refresh()
 	local missingKeys = {}
 	local hasNewMissingRule = false
 	for _, rule in ipairs(missing) do
-		local key = rule.key or tostring(rule.spellID or (rule.auraSpellIDs and rule.auraSpellIDs[1]) or (rule.anySpellIDs and rule.anySpellIDs[1]))
+		local key = rule.key or tostring(rule.castSpellID or rule.spellID or (rule.auraSpellIDs and rule.auraSpellIDs[1]) or (rule.anySpellIDs and rule.anySpellIDs[1]))
 		missingKeys[key] = true
 		if not self.missingRuleKeys or not self.missingRuleKeys[key] then
 			hasNewMissingRule = true
@@ -204,7 +227,7 @@ function ns:Refresh()
 	if not self.db.showVisual or #missing == 0 then self:StopIconFlashing(); alert:Hide() else
 		alert:SetWidth(math.max(48, #missing * 40 + 12))
 		for i, rule in ipairs(missing) do
-			local icon = GetIcon(i); icon:SetPoint("LEFT", alert, "LEFT", 7 + (i - 1) * 40, 0); icon.texture:SetTexture(RuleIcon(rule)); icon.spellID = rule.spellID or rule.anySpellIDs[1]; icon:Show()
+			local icon = GetIcon(i); icon:SetPoint("LEFT", alert, "LEFT", 7 + (i - 1) * 40, 0); icon.texture:SetTexture(RuleIcon(rule)); icon.spellID = rule.castSpellID or rule.spellID or (rule.castSpellIDs and rule.castSpellIDs[1]) or rule.anySpellIDs[1]; icon:Show()
 		end
 		for i = #missing + 1, #alert.icons do alert.icons[i]:Hide() end
 		alert:Show()
@@ -260,6 +283,7 @@ frame:RegisterEvent("PLAYER_TALENT_UPDATE")
 frame:RegisterEvent("SPELLS_CHANGED")
 frame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
 frame:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+frame:RegisterEvent("PLAYER_LEVEL_UP")
 frame:RegisterEvent("PLAYER_REGEN_ENABLED")
 frame:RegisterEvent("PLAYER_REGEN_DISABLED")
 frame:SetScript("OnEvent", function(_, event, unit)
@@ -267,6 +291,9 @@ frame:SetScript("OnEvent", function(_, event, unit)
 		gsMyBuffReminderDB = gsMyBuffReminderDB or {}; CopyDefaults(gsMyBuffReminderDB, defaults); ns.db = gsMyBuffReminderDB
 		ns:RegisterEditMode()
 		if ns.CreateOptions then ns:CreateOptions() end
+	end
+	if event == "PLAYER_LOGIN" or event == "SPELLS_CHANGED" or event == "PLAYER_TALENT_UPDATE" or event == "ACTIVE_TALENT_GROUP_CHANGED" or event == "PLAYER_SPECIALIZATION_CHANGED" or event == "PLAYER_LEVEL_UP" then
+		ns:InvalidateKnownSpells()
 	end
 	if (event == "UNIT_AURA" or event == "UNIT_INVENTORY_CHANGED") and unit ~= "player" then return end
 	ns:ScheduleRefresh()

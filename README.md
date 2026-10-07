@@ -4,6 +4,8 @@ A Retail WoW addon that displays the real spell icons for buffs you are missing 
 
 All buff matching uses numeric SpellIDs (or weapon-enchant IDs for temporary weapon enchants), never localized names. Names are used only for labels and tooltips.
 
+Each spell-based reminder separately identifies its casting spell and the aura it verifies, so it is shown only when the character knows a spell that can provide the buff. Toy-created buffs remain gated by toy ownership. Spellbook lookups are cached and refreshed when spells, talents, specialization, or level change.
+
 When Midnight marks an aura as restricted, the addon reports it as `unknown (restricted)` in `/gsb status` rather than falsely treating it as present. Blizzard does not permit addons to determine a restricted aura's active state.
 
 Initial defaults:
